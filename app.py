@@ -1,6 +1,7 @@
 
 from flask import Flask, render_template, jsonify, request
 from src.helpers import download_hugging_face_embeddings
+from langchain.memory import ConversationBufferMemory
 from langchain_pinecone import PineconeVectorStore
 from langchain_groq import ChatGroq
 from langchain.chains import create_retrieval_chain
@@ -41,15 +42,21 @@ chatModel = ChatGroq(
     model = 'llama-3.1-8b-instant',
     temperature=0
 )
+
+memory = ConversationBufferMemory(
+    memory_key="chat_history",
+    return_messages=True
+)
+
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
-        ("human", "{input}"),
+        ("human", "{chat_history}\nUser: {input}"),
     ]
 )
 
 question_answer_chain = create_stuff_documents_chain(chatModel, prompt)
-rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+rag_chain = create_retrieval_chain(retriever, question_answer_chain, memory=memory)
 
 
 
